@@ -9,7 +9,6 @@ import { errorHandler } from './middlewares/error-middleware';
 import { requestLogger, errorLogger } from './middlewares/logging.middleware';
 import { metricsMiddleware, authenticationMetrics } from './middlewares/metrics.middleware';
 import { apiAuthMiddleware } from './middlewares/api-auth.middleware';
-import v1Routes from './routes/v1.route';
 import { healthCheckRouter } from './routes/health.route';
 import { metricsRoutes } from './routes/metrics.route';
 import { logger, stream } from './config/logger.config';
@@ -57,9 +56,13 @@ app.use('/metrics', metricsRoutes);
 import { userRoutes } from './routes/user.route';
 import { paymentMethodRoutes } from './routes/payment-method.route';
 import { paymentProviderRoutes } from './routes/payment-provider.route';
+import { testRoutes } from './routes/test.route';
 
 // User routes without authentication
 app.use('/api/v1/users', userRoutes);
+
+// Test routes for logging (no authentication required for testing)
+app.use('/api/v1/test', testRoutes);
 
 // Other API routes with authentication
 app.use('/api/v1/payment-methods', apiAuthMiddleware, paymentMethodRoutes);

@@ -1,5 +1,7 @@
 import winston from 'winston';
 import LokiTransport from 'winston-loki';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Define log levels
 const levels = {
@@ -29,49 +31,37 @@ const level = () => {
   return isDevelopment ? 'debug' : 'warn';
 };
 
-// Define different log formats
-const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
-);
 
 // Define which transports the logger must use
 const transports = [
-  // Console transport
+  // Console transport - stateless friendly
   new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }),
-  
-  // File transport for errors
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json()
-    )
-  }),
-  
-  // File transport for all logs
-  new winston.transports.File({
-    filename: 'logs/combined.log',
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json()
-    )
+    format: process.env.NODE_ENV === 'production'
+      ? winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.errors({ stack: true }),
+        winston.format.json()
+      )
+      : winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
   }),
 ];
 
 // Add Loki transport if configured
 if (process.env.LOKI_HOST) {
+  const lokiHost = `http://${process.env.LOKI_HOST}:${process.env.LOKI_PORT || 3100}`;
+
+  // Log Loki configuration for debugging
+  console.log('🔧 Loki Configuration:');
+  console.log(`   Host: ${lokiHost}`);
+  console.log(`   App: ${process.env.npm_package_name || 'payment-method-service'}`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   Basic Auth: ${process.env.LOKI_USERNAME ? 'Configured' : 'Not configured'}`);
+
   const lokiTransport = new LokiTransport({
-    host: process.env.LOKI_HOST,
+    host: lokiHost,
     json: true,
     format: winston.format.json(),
     labels: {
@@ -80,9 +70,23 @@ if (process.env.LOKI_HOST) {
     },
     replaceTimestamp: true,
     gracefulShutdown: true,
+    ...(process.env.LOKI_USERNAME && process.env.LOKI_PASSWORD && {
+      basicAuth: `${process.env.LOKI_USERNAME}:${process.env.LOKI_PASSWORD}`
+    })
   }) as any; // Type assertion to handle winston-loki type issues
 
+  // Add event listeners for debugging
+  lokiTransport.on('error', (error: any) => {
+    console.error('❌ Loki Transport Error:', error);
+  });
+
+  lokiTransport.on('logged', (info: any) => {
+    console.log('✅ Log sent to Loki:', info.labels || 'no labels');
+  });
+
   transports.push(lokiTransport as any);
+} else {
+  console.log('⚠️  Loki not configured - LOKI_HOST environment variable not set');
 }
 
 // Create the logger
