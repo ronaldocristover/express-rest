@@ -157,4 +157,51 @@ router.get('/loki-status', (req, res) => {
   });
 });
 
+/**
+ * GET /test/metrics
+ * Test endpoint to generate custom metrics for Grafana testing
+ */
+router.get('/metrics', (req, res) => {
+  const { register } = require('../config/metrics.config');
+
+  // Generate some test metrics
+  const testCounter = new (require('prom-client').Counter)({
+    name: 'test_requests_total',
+    help: 'Total number of test requests',
+    labelNames: ['endpoint', 'status']
+  });
+
+  const testGauge = new (require('prom-client').Gauge)({
+    name: 'test_active_connections',
+    help: 'Number of active test connections'
+  });
+
+  const testHistogram = new (require('prom-client').Histogram)({
+    name: 'test_response_time_seconds',
+    help: 'Test response time in seconds',
+    buckets: [0.1, 0.5, 1, 2, 5]
+  });
+
+  register.registerMetric(testCounter);
+  register.registerMetric(testGauge);
+  register.registerMetric(testHistogram);
+
+  // Simulate some metrics
+  testCounter.labels('/test/metrics', 'success').inc();
+  testGauge.set(Math.floor(Math.random() * 100));
+  testHistogram.observe(Math.random() * 2);
+
+  res.json({
+    success: true,
+    message: 'Test metrics generated',
+    metrics: [
+      'test_requests_total',
+      'test_active_connections',
+      'test_response_time_seconds'
+    ],
+    checkPrometheus: 'http://localhost:9090/targets',
+    checkGrafana: 'http://localhost:3000'
+  });
+});
+
 export { router as testRoutes };

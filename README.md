@@ -11,9 +11,10 @@ A scalable Express.js microservice for managing payment methods with support for
 - **API Key Authentication**: Secure API access using API keys
 - **Input Validation**: Comprehensive request validation using Joi
 - **Error Handling**: Centralized error handling with proper HTTP status codes
-- **Request Logging**: Detailed request/response logging
+- **Request Logging**: Detailed request/response logging with Loki integration
 - **Rate Limiting**: Configurable rate limiting to prevent abuse
 - **Health Checks**: Health check endpoints for monitoring
+- **Metrics & Monitoring**: Prometheus metrics collection and Grafana dashboard
 - **Docker Support**: Multi-stage Dockerfile and Docker Compose setup
 - **TypeScript**: Full TypeScript support with strict typing
 - **Testing**: Jest test suite with comprehensive coverage
@@ -28,6 +29,8 @@ A scalable Express.js microservice for managing payment methods with support for
 - **Containerization**: Docker
 - **Validation**: Joi
 - **Authentication**: API Key based
+- **Monitoring**: Prometheus + Grafana
+- **Logging**: Loki
 - **Testing**: Jest
 
 ## Quick Start
@@ -77,6 +80,47 @@ A scalable Express.js microservice for managing payment methods with support for
    ```bash
    docker-compose exec payment-service npm run db:migrate
    ```
+
+## Monitoring & Observability
+
+### Prometheus Metrics
+
+The application exposes Prometheus metrics at `/metrics` endpoint. Key metrics include:
+
+- **HTTP Request Rate**: `rate(http_requests_total[5m])`
+- **Request Duration**: 95th and 50th percentiles
+- **Active Requests**: Current number of active requests
+- **Status Code Distribution**: Request breakdown by HTTP status codes
+- **System Metrics**: Memory and CPU usage
+
+### Grafana Dashboard
+
+A pre-configured Grafana dashboard is available for monitoring the service.
+
+**Setup Instructions:**
+See [docs/grafana-prometheus-setup.md](./docs/grafana-prometheus-setup.md) for detailed setup instructions.
+
+**Quick Start:**
+```bash
+# Start monitoring stack
+docker-compose -f docker-compose-monitoring.yml up -d
+
+# Access Grafana
+# URL: http://localhost:3000
+# Username: admin
+# Password: admin
+```
+
+**Available Dashboards:**
+- Payment Method Service Dashboard (pre-configured)
+- Custom dashboards can be imported via Grafana UI
+
+### Logging with Loki
+
+Logs are automatically sent to Loki and can be viewed in Grafana:
+- **Log Levels**: Error, Warn, Info, Debug
+- **Structured Logging**: JSON format with correlation IDs
+- **Request Tracing**: Complete request/response lifecycle logging
 
 ## API Documentation
 
@@ -289,6 +333,8 @@ See `.env.example` for all available environment variables.
 - `npm run db:migrate`: Run database migrations
 - `npm run db:push`: Push schema to database
 - `npm run db:studio`: Open Prisma Studio
+- `npm run monitoring:start`: Start monitoring stack (Prometheus + Grafana + Loki)
+- `npm run monitoring:stop`: Stop monitoring stack
 
 ### Project Structure
 
@@ -303,6 +349,15 @@ src/
 ├── config/          # Configuration files
 ├── tests/           # Test files
 └── types/           # Custom TypeScript types
+
+docs/
+├── grafana-prometheus-setup.md  # Monitoring setup guide
+
+monitoring/
+├── prometheus.yml               # Prometheus configuration
+├── grafana-dashboard.json       # Pre-configured Grafana dashboard
+├── loki-config.yml             # Loki configuration
+└── docker-compose-monitoring.yml  # Monitoring stack compose file
 ```
 
 ## Contributing
