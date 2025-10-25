@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nama      String // Nama user
+  telp      String   @unique // Nomor telepon user
+  email     String?  @unique // Email opsional
+  password  String? // Password opsional
+  apiKey    String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  paymentMethods PaymentMethod[]
+
+  @@map("users")
+}
+
+model PaymentProvider {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  isActive    Boolean  @default(true)
+  config      Json? // Provider-specific configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  paymentMethods PaymentMethod[]
+
+  @@map("payment_providers")
+}
+
+model PaymentMethod {
+  id               String            @id @default(cuid())
+  userId           String
+  providerId       String
+  providerMethodId String // ID from the payment provider
+  type             PaymentMethodType
+  last4            String? // Last 4 digits for cards
+  expiryMonth      Int? // Expiry month for cards
+  expiryYear       Int? // Expiry year for cards
+  brand            String? // Card brand (visa, mastercard, etc.)
+  isDefault        Boolean           @default(false)
+  metadata         Json? // Additional provider-specific data
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider PaymentProvider @relation(fields: [providerId], references: [id])
+
+  @@unique([userId, providerMethodId])
+  @@map("payment_methods")
+}
+
+enum PaymentMethodType {
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_ACCOUNT
+  DIGITAL_WALLET
+  OTHER
+}
